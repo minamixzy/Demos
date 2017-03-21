@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>帮你计算24点 by xzywww</title>
+</head>
+
+<div>
+    <h1>帮你计算24点 by xzywww</h1>
+    num1:<input type="text" id='num1'> num2:
+    <input type="text" id='num2'> num3:
+    <input type="text" id='num3'> num4:
+    <input type="text" id='num4'>
+    <button id="btn">submit</button>
+    <ol id="res"></ol>
+</div>
+
+<body>
+    <script>
+        onload = function () {
+            let num1 = document.getElementById('num1');
+            let num2 = document.getElementById('num2');
+            let num3 = document.getElementById('num3');
+            let num4 = document.getElementById('num4');
+            let btn = document.getElementById('btn');
+            let res = document.getElementById('res');
+
+            btn.onclick = function () {
+                let result = calc24(num1.value, num2.value, num3.value, num4.value);
+                let str = '';
+                if (result.size === 0) {
+                    str = '<li>无法得到24点</li>'
+                } else {
+                    for (let v of result) {
+                        str += '<li>' + v + '</li>';
+                    }
+                }
+                res.innerHTML = str;
+            }
+        }
+
+        /* 计算24点的主函数 */
+        function calc24(a, b, c, d) {
+            let list = calc4(+a, +b, +c, +d);
+
+            let set = new Set();
+
+            for (let i = 0; i < list.length; i++) {
+                //为了防止浮点运算精度不够
+                if (Math.abs(eval(list[i]) - 24) < 0.01) {
+                    set.add(list[i]);
+                }
+            }
+            return set;
+        }
+
+        //计算2个数可能出现的所有结果
+        function calc2(a, b) {
+            if (typeof a === 'number' || typeof a === 'string') {
+                return [
+                    '(' + a + ' + ' + b + ')',
+                    '(' + a + ' - ' + b + ')',
+                    '(' + b + ' - ' + a + ')',
+                    '(' + a + ' * ' + b + ')',
+                    '(' + a + ' / ' + b + ')',
+                    '(' + b + ' / ' + a + ')'
+                ]
+            } else if (Array.isArray(a)) { //如果a传入的是数组，那么迭代列表
+                let list = [];
+                if (Array.isArray(b)) { //如果b也是数组，那么也需要迭代
+                    for (let i = 0; i < a.length; i++) {
+                        for (let j = 0; j < b.length; j++){
+                            list.push(...calc2(a[i], b[j]));
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < a.length; i++) {
+                        list.push(...calc2(a[i], b));
+                    }
+                }
+                return list;
+            }
+        }
+
+        //计算3个数可能出现的所有结果
+        function calc3(a, b, c) {
+            return [
+                ...calc2(calc2(b, c), a),
+                ...calc2(calc2(a, c), b),
+                ...calc2(calc2(a, b), c)
+            ];
+        }
+
+        //计算4个数可能出现的所有结果
+        function calc4(a, b, c, d) {
+            return [
+                ...calc2(calc3(b, c, d), a),
+                ...calc2(calc3(a, c, d), b),
+                ...calc2(calc3(a, b, d), c),
+                ...calc2(calc3(a, b, c), d),
+                ...calc2(calc2(a, b), calc2(c, d)),
+                ...calc2(calc2(a, c), calc2(b, d)),
+                ...calc2(calc2(a, d), calc2(b, c)),
+            ];
+        }
+    </script>
+</body>
+
+</html>
