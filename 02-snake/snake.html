@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>续命蛇</title>
+    <meta name="author" content="xzy">
+</head>
+<body>
+<canvas id="canvas"></canvas>
+</body>
+<script>
+    const canvas = document.getElementById("canvas"),
+        ctx = canvas.getContext("2d");
+    var colorArr = ["pink", "green", "red"],
+        girdwidth = 20,
+        girdData,
+        snake,
+        apple,
+        then,
+        isGameover = false;
+    //创建画布 初始化网格
+    function initCanvas(width, height) {
+        canvas.width = width - width % girdwidth;
+        canvas.height = height - height % girdwidth;
+//        canvas.style.backgroundColor = "pink"
+    }
+
+    var Grid = {
+        init: function (x, y, value) {
+            this.x = x || 0;
+            this.y = y || 0;
+            this.value = value || 0; //0为背景 1为蛇 2为苹果
+        },
+        draw: function () {
+            ctx.fillStyle = colorArr[this.value];
+            ctx.fillRect(this.x * girdwidth, this.y * girdwidth, girdwidth, girdwidth);
+        }
+    };
+    //初始化网格，5*5
+    function resetgird() {
+        girdData = new Array(canvas.width / girdwidth);
+        for (let x = 0; x < canvas.width / girdwidth; x++) {
+            girdData[x] = new Array(canvas.height / girdwidth);
+            for (let y = 0; y < canvas.height / girdwidth; y++) {
+                let tempGrid = Object.create(Grid);
+                tempGrid.init(x, y, 0);
+                girdData[x][y] = tempGrid;
+            }
+        }
+    }
+
+    //创建蛇
+    snake = {
+        init: function () {
+            this.snakeBody = [girdData[10][10], girdData[9][10], girdData[8][10], girdData[7][10]];
+            for (let i = 0; i < this.snakeBody.length; i++) {
+                this.snakeBody[i].value = 1;
+            }
+            this.headX = this.snakeBody[0].x;
+            this.headY = this.snakeBody[0].y;
+            this.count = 0;
+            this.direction = 1; //0 上，1 右，2下，3坐
+            this.updatetime = 128; //毫秒，每128ms更新
+        }
+    }; //蛇运动和蛇的行为
+
+
+    //创建苹果
+    apple = Object.create(Grid);
+    apple.initApple = function () {
+        let x = Math.floor(Math.random() * canvas.width / girdwidth);
+        let y = Math.floor(Math.random() * canvas.height / girdwidth);
+        if (girdData[x][y].value === 1) {
+            return apple.initApple();
+        } else {
+            apple.init(x, y, 2);
+            girdData[x][y].value = 2; //此处的模式有待改进
+        }
+    };
+    //渲染画面和事件更新
+    function update(delta) {
+        snake.count += delta;
+        if (snake.count < snake.updatetime) {
+            return;
+        }
+        switch (snake.direction) {
+            case 0 :
+                snake.headY -= 1;
+                if (snake.headY < 0) {
+                    snake.headY = canvas.height / girdwidth - 1;
+                }
+                break;
+            case 1:
+                snake.headX += 1;
+                if (snake.headX > canvas.width / girdwidth - 1) {
+                    snake.headX = 0;
+                }
+                break;
+            case 2:
+                snake.headY += 1;
+                if (snake.headY > canvas.height / girdwidth - 1) {
+                    snake.headY = 0;
+                }
+                break;
+            case 3:
+                snake.headX -= 1;
+                if (snake.headX < 0) {
+                    snake.headX = canvas.width / girdwidth - 1;
+                }
+                break;
+        }
+        snake.snakeBody.unshift(girdData[snake.headX][snake.headY]);//先挪到前一格子
+        if (girdData[snake.headX][snake.headY].value === 1) {//如果是自己，那么游戏结束
+            isGameover = true;
+        } else if (girdData[snake.headX][snake.headY].value === 2) { //如果是苹果，那么吃了
+            girdData[snake.headX][snake.headY].value = 1;
+            apple.initApple();//重新选择苹果
+            snake.updatetime = snake.updatetime <= 48 ? 48 : snake.updatetime - 4;
+        } else { //如果不是，那么把最后一个删了，挪到前面
+            girdData[snake.headX][snake.headY].value = 1;
+            snake.snakeBody.pop().value = 0
+        }
+        snake.count = 0;
+    }
+
+    function render() {
+        for (let x = 0; x < canvas.width / girdwidth; x++) {
+            for (let y = 0; y < canvas.height / girdwidth; y++) {
+                girdData[x][y].draw();
+            }
+        }
+    }
+    //事件监听
+    addEventListener("keydown", function (event) {
+        switch (event.keyCode) {
+            case snake.direction !== 1 && 37: {  //完美，Perfect!!!
+                snake.direction = 3;
+                break;
+            }
+            case snake.direction !== 2 && 38: {
+                snake.direction = 0;
+                break;
+            }
+            case snake.direction !== 3 && 39: {
+                snake.direction = 1;
+                break;
+            }
+            case snake.direction !== 0 && 40: {
+                snake.direction = 2;
+                break;
+            }
+        }
+    }, false);
+
+    var main = function () {
+        var now = Date.now();
+        var delta = now - then;
+        update(delta);
+        render();//重新渲染
+        then = now;
+        // 如果gg了，那么重新开始
+        if (isGameover) {
+            alert("You Lose!");
+            reset();
+        } else {
+            requestAnimationFrame(main);
+        }
+    };
+
+    //重新开始状态
+    function reset() {
+        isGameover = false;
+        initCanvas(500, 500);
+        resetgird();
+        snake.init();
+        apple.initApple();
+        then = Date.now();
+        main();
+    }
+
+    window.onload = function () {
+        reset();
+    }
+</script>
+</html>
